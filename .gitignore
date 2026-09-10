@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.site-package/
+*.tar.gz
+outputs/
+
+# 이 작업 폴더에 함께 있던 별도 뉴스 클리핑 도구
+build_news_clipping_template.mjs
+update_ai_news_clipping.mjs
