@@ -32,7 +32,13 @@ const path = require('path');
             const rect = el.getBoundingClientRect();
             return rect.right > innerWidth + 1 || rect.left < -1;
           }).map(el => el.tagName + '.' + el.className);
-          return {overflow, documentWidth:document.documentElement.scrollWidth, viewport:innerWidth};
+          const image = document.querySelector('.about-art img');
+          let imageContained = true;
+          if (image) {
+            const i=image.getBoundingClientRect(), f=image.parentElement.getBoundingClientRect();
+            imageContained=i.left>=f.left-1&&i.top>=f.top-1&&i.right<=f.right+1&&i.bottom<=f.bottom+1;
+          }
+          return {overflow, imageContained, documentWidth:document.documentElement.scrollWidth, viewport:innerWidth};
         });
         results.push({name,width,...result});
         if (name==='introduce' && [390,1440].includes(width)) await page.screenshot({path:`.site-package/qa/introduce-${width}.png`,fullPage:true});
@@ -46,8 +52,16 @@ const path = require('path');
         await page.getByRole('button',{name:'닫기',exact:true}).click();
       }
     }
-    const failed = results.filter(r=>r.overflow.length || r.documentWidth>r.viewport);
-    console.log(JSON.stringify({checks:results.length,failed,errors},null,2));
+    await page.route('**/introduce.css*', route => route.abort());
+    await page.goto(`http://127.0.0.1:${server.address().port}/introduce.html`, {waitUntil:'domcontentloaded'});
+    const fallbackContained = await page.evaluate(() => {
+      const frame=document.querySelector('.about-art').getBoundingClientRect();
+      const image=document.querySelector('.about-art img').getBoundingClientRect();
+      return image.left>=frame.left-1&&image.top>=frame.top-1&&image.right<=frame.right+1&&image.bottom<=frame.bottom+1;
+    });
+    if (!fallbackContained) throw Error('Image escapes container when introduction stylesheet is unavailable');
+    const failed = results.filter(r=>r.overflow.length || !r.imageContained || r.documentWidth>r.viewport);
+    console.log(JSON.stringify({checks:results.length,failed,errors,fallbackContained},null,2));
     if (failed.length || errors.length) process.exitCode=1;
   } finally { if(browser) await browser.close(); server.close(); }
 })();
