@@ -1,4 +1,46 @@
 const dialog=document.querySelector('dialog');
+
+// Music starts only after an explicit click; each page opens quietly.
+(() => {
+  const music = new Audio('assets/clover-pop.wav');
+  music.loop = true;
+  music.preload = 'none';
+  music.volume = .25;
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'music-toggle';
+  button.textContent = '♫ 음악 켜기';
+  button.setAttribute('aria-label', '발랄한 배경음악 켜기');
+  button.setAttribute('aria-pressed', 'false');
+  document.body.append(button);
+  const style = document.createElement('style');
+  style.textContent = `.music-toggle{position:fixed;right:24px;bottom:24px;z-index:1000;border:1px solid #145e35;border-radius:28px;padding:13px 20px;background:#e9fad3;color:#145e35;font-family:inherit;font-size:14px;font-weight:600;box-shadow:0 4px 18px #145e3518}.music-toggle:hover{background:#d7f477}.music-toggle[aria-pressed="true"]{background:#145e35;color:#fff}.music-toggle:disabled{opacity:.7}.music-toggle:focus-visible{outline:3px solid #3285fa;outline-offset:4px}@media(max-width:760px){.music-toggle{right:16px;bottom:16px;padding:11px 16px}}`;
+  document.head.append(style);
+  function stop() {
+    music.pause();
+    button.textContent = '♫ 음악 켜기';
+    button.setAttribute('aria-label', '발랄한 배경음악 켜기');
+    button.setAttribute('aria-pressed', 'false');
+  }
+  button.addEventListener('click', async () => {
+    if (!music.paused) { stop(); return; }
+    button.disabled = true;
+    button.textContent = '♫ 준비 중';
+    try {
+      await music.play();
+      if (document.hidden) { stop(); return; }
+      button.textContent = '♫ 음악 끄기';
+      button.setAttribute('aria-label', '배경음악 끄기');
+      button.setAttribute('aria-pressed', 'true');
+    } catch {
+      stop();
+      button.textContent = '♫ 재생 다시 시도';
+      button.setAttribute('aria-label', '배경음악 재생 다시 시도');
+    } finally { button.disabled = false; }
+  });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); });
+  window.addEventListener('pagehide', stop);
+})();
 document.querySelectorAll('[data-story]').forEach(link=>link.addEventListener('click',event=>{event.preventDefault();const story=document.getElementById(link.dataset.story);dialog.querySelector('.dialog-content').innerHTML=story.innerHTML;dialog.showModal()}));
 document.querySelectorAll('[data-art]').forEach(button=>button.addEventListener('click',()=>{const content=dialog.querySelector('.dialog-content');content.replaceChildren();const title=document.createElement('h2');title.textContent=button.dataset.title;const image=document.createElement('img');image.src=button.dataset.art;image.alt=button.dataset.title;content.append(title,image);dialog.showModal()}));
 dialog?.querySelector('.close').addEventListener('click',()=>dialog.close());
